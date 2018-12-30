@@ -15,7 +15,7 @@ use stdweb::web::event::{ClickEvent, ConcreteEvent};
 
 pub const ANGLE: f64 = PI / 6.;
 
-pub const BOARD_SIDE: usize = 7;
+pub const BOARD_SIDE: usize = 7; // odd number
 pub const BOARD_SIZE: usize = (BOARD_SIDE * 2) - 1;
 pub const TILE_SIZE: f64 = 22.;
 
@@ -43,14 +43,20 @@ pub fn is_even(x: i32) -> bool {
     x & 1 == 0
 }
 
+#[derive(Debug)]
 pub struct HexTile {
     q: i32,
     r: i32,
+    selected: bool,
 }
 
 impl HexTile {
     pub fn new(q: i32, r: i32) -> Self {
-        HexTile { q, r }
+        HexTile {
+            q,
+            r,
+            selected: false,
+        }
     }
 
     fn coord_to_pos(&self) -> (f64, f64) {
@@ -79,7 +85,9 @@ impl HexTile {
                 margin() + half_board_width() + y + TILE_SIZE * angle.sin(),
             );
         }
-        if is_even(self.q) && is_even(self.r) {
+        if self.selected {
+            context.set_fill_style_color("#b33");
+        } else if is_even(self.q) && is_even(self.r) {
             context.set_fill_style_color("#111");
         } else if is_odd(self.q) && is_even(self.r) {
             context.set_fill_style_color("#222");
@@ -146,6 +154,14 @@ impl Store {
         let r = (r / tile_x()).round() as i32;
         let q = (q / tile_x()).round() as i32;
         info!("Translated to {}, {}", q, r);
+
+        for tile in self.tiles.iter_mut() {
+            if tile.r == r && tile.q == q {
+                tile.selected = !tile.selected;
+            } else {
+                tile.selected = false;
+            }
+        }
 
         Ok(())
     }
