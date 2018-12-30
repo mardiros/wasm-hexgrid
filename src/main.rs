@@ -104,12 +104,11 @@ impl HexTile {
 
 pub struct Store {
     game_over: bool,
-    cell_width: u32,
     tiles: Vec<HexTile>,
 }
 
 impl Store {
-    fn new(cell_width: u32) -> Self {
+    fn new() -> Self {
         let maxq: i32 = ((BOARD_SIZE as f32 / 2.).ceil()) as i32;
         let minq: i32 = maxq - BOARD_SIZE as i32;
 
@@ -123,7 +122,6 @@ impl Store {
         }
 
         Store {
-            cell_width,
             game_over: false,
             tiles: tiles,
         }
@@ -224,7 +222,7 @@ fn main() {
     web_logger::init();
     info!("Welcome aboard");
 
-    let store = Store::new(60);
+    let store = Store::new();
     let canvas = Canvas::new("#game", &store);
     let mut ac = AnimatedCanvas::new(store, canvas);
     ac.attach_event();
