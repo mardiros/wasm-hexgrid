@@ -113,10 +113,10 @@ impl Store {
         let minq: i32 = maxq - BOARD_SIZE as i32;
 
         let mut tiles = Vec::with_capacity((maxq * maxq) as usize);
-        for x in minq..maxq {
-            for y in minq..maxq {
-                if (x + y < maxq) && (x + y > -maxq) {
-                    tiles.push(HexTile::new(x, y));
+        for q in minq..maxq {
+            for r in minq..maxq {
+                if (q + r < maxq) && (q + r > -maxq) {
+                    tiles.push(HexTile::new(q, r));
                 }
             }
         }
