@@ -17,8 +17,7 @@ pub const ANGLE: f64 = PI / 6.;
 
 pub const BOARD_SIDE: usize = 7;
 pub const BOARD_SIZE: usize = (BOARD_SIDE * 2) - 1;
-pub const TILE_SIZE: f64 = 32.;
-pub const BOARD_WIDTH: f64 = TILE_SIZE * (BOARD_SIZE as f64);
+pub const TILE_SIZE: f64 = 22.;
 
 pub fn tile_x() -> f64 {
     TILE_SIZE * ANGLE.cos()
@@ -28,12 +27,20 @@ pub fn tile_y() -> f64 {
     TILE_SIZE * ANGLE.sin()
 }
 
-pub fn board_width() -> f64 {
+pub fn half_board_width() -> f64 {
     tile_x() * BOARD_SIZE as f64
 }
 
 pub fn margin() -> f64 {
     tile_x()
+}
+
+pub fn is_odd(x: i32) -> bool {
+    x & 1 == 1
+}
+
+pub fn is_even(x: i32) -> bool {
+    x & 1 == 0
 }
 
 pub struct HexTile {
@@ -56,22 +63,31 @@ impl HexTile {
 
     pub fn paint(&self, context: &CanvasRenderingContext2d) {
         info!("Paint");
+        context.set_stroke_style_color("#a24"); //red
         let delta: f64 = PI / 3.;
         let mut angle: f64 = PI / 6.;
         let (x, y) = self.coord_to_pos();
         context.begin_path();
         context.move_to(
-            margin() + board_width() + x + tile_x(),
-            margin() + board_width() + y + TILE_SIZE * angle.sin(),
+            margin() + half_board_width() + x + tile_x(),
+            margin() + half_board_width() + y + TILE_SIZE * angle.sin(),
         );
         for _ in 0..6 {
             angle += delta;
             context.line_to(
-                margin() + board_width() + x + TILE_SIZE * angle.cos(),
-                margin() + board_width() + y + TILE_SIZE * angle.sin(),
+                margin() + half_board_width() + x + TILE_SIZE * angle.cos(),
+                margin() + half_board_width() + y + TILE_SIZE * angle.sin(),
             );
         }
-        context.set_fill_style_color("#333");
+        if is_even(self.q) && is_even(self.r) {
+            context.set_fill_style_color("#111");
+        } else if is_odd(self.q) && is_even(self.r) {
+            context.set_fill_style_color("#222");
+        } else if is_even(self.q) && is_odd(self.r) {
+            context.set_fill_style_color("#222");
+        } else {
+            context.set_fill_style_color("#333");
+        }
         context.fill(FillRule::NonZero);
         context.stroke();
 
@@ -79,8 +95,8 @@ impl HexTile {
         context.set_fill_style_color("#eee");
         context.fill_text(
             text.as_str(),
-            margin() + board_width() + x - 12.,
-            margin() + board_width() + y,
+            margin() + half_board_width() + x - 12.,
+            margin() + half_board_width() + y,
             None,
         );
     }
@@ -89,37 +105,50 @@ impl HexTile {
 pub struct Store {
     game_over: bool,
     cell_width: u32,
+    tiles: Vec<HexTile>,
 }
 
 impl Store {
     fn new(cell_width: u32) -> Self {
+        let maxq: i32 = ((BOARD_SIZE as f32 / 2.).ceil()) as i32;
+        let minq: i32 = maxq - BOARD_SIZE as i32;
+
+        let mut tiles = Vec::with_capacity((maxq * maxq) as usize);
+        for x in minq..maxq {
+            for y in minq..maxq {
+                if (x + y < maxq) && (x + y > -maxq) {
+                    tiles.push(HexTile::new(x, y));
+                }
+            }
+        }
+
         Store {
             cell_width,
             game_over: false,
+            tiles: tiles,
         }
-    }
-
-    fn cell_width(&self) -> u32 {
-        self.cell_width
     }
 
     fn paint(&self, context: &CanvasRenderingContext2d) {
         info!("Paint");
-
-        let maxq: i32 = ((BOARD_SIZE as f32 / 2.).ceil()) as i32;
-        let minq: i32 = maxq - BOARD_SIZE as i32;
-        context.set_stroke_style_color("#a24"); //red
-        for x in minq..maxq {
-            for y in minq..maxq {
-                if (x + y < maxq) && (x + y > -maxq) {
-                    let tile = HexTile::new(x, y);
-                    tile.paint(context);
-                }
-            }
+        for tile in self.tiles.iter() {
+            tile.paint(context);
         }
     }
 
-    fn play(&mut self, x: usize, y: usize) -> Result<(), ()> {
+    fn play(&mut self, x: f64, y: f64) -> Result<(), ()> {
+        info!("Click on {}, {}", x, y);
+        let x = x - margin() - half_board_width();
+        let y = y - margin() - half_board_width();
+        info!("Translated to {}, {}", x, y);
+
+        let r = y / (2. * ANGLE.cos());
+        let q = (x - r) / 2.;
+
+        let r = (r / tile_x()).round() as i32;
+        let q = (q / tile_x()).round() as i32;
+        info!("Translated to {}, {}", q, r);
+
         Ok(())
     }
 }
@@ -137,7 +166,7 @@ impl Canvas {
             .try_into()
             .unwrap();
 
-        let canvas_width = board_width() as u32 * 2 + 2 * margin() as u32;
+        let canvas_width = half_board_width() as u32 * 2 + 2 * margin() as u32;
 
         canvas.set_width(canvas_width);
         canvas.set_height(canvas_width);
@@ -176,8 +205,8 @@ impl AnimatedCanvas {
         let store = self.store.clone();
         self.canvas.add_event_listener(move |event: ClickEvent| {
             let mut store = store.borrow_mut();
-            let x = (event.offset_x() / store.cell_width() as f64) as usize;
-            let y = (event.offset_y() / store.cell_width() as f64) as usize;
+            let x = event.offset_x();
+            let y = event.offset_y();
             if let Ok(_) = store.play(x, y) {
                 store.paint(&context);
             }
