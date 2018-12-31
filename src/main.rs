@@ -71,8 +71,8 @@ impl HexTile {
         info!("Paint");
         context.set_stroke_style_color("#a24"); //red
         let delta: f64 = PI / 3.;
-        let mut angle: f64 = PI / 6.;
-        let (x, y) = self.coord_to_pos();
+        let mut angle: f64 = 0.; //PI / 6.;
+        let (y, x) = self.coord_to_pos();
         context.move_to(
             margin() + half_board_width() + x + tile_x(),
             margin() + half_board_width() + y + TILE_SIZE * angle.sin(),
@@ -152,7 +152,6 @@ impl Tiles {
         Ok(())
     }
 
-
 }
 
 pub struct Store {
@@ -181,8 +180,8 @@ impl Store {
         let y = y - margin() - half_board_width();
         info!("Translated to {}, {}", x, y);
 
-        let r = y / (2. * ANGLE.cos());
-        let q = (x - r) / 2.;
+        let r = x / (2. * ANGLE.cos());
+        let q = (y - r) / 2.;
 
         let r = (r / tile_x()).round() as i32;
         let q = (q / tile_x()).round() as i32;
