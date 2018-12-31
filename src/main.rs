@@ -73,11 +73,11 @@ impl HexTile {
         let delta: f64 = PI / 3.;
         let mut angle: f64 = PI / 6.;
         let (x, y) = self.coord_to_pos();
-        context.begin_path();
         context.move_to(
             margin() + half_board_width() + x + tile_x(),
             margin() + half_board_width() + y + TILE_SIZE * angle.sin(),
         );
+        context.begin_path();
         for _ in 0..6 {
             angle += delta;
             context.line_to(
