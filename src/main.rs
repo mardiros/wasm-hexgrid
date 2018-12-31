@@ -110,12 +110,12 @@ impl HexTile {
     }
 }
 
-pub struct Store {
-    game_over: bool,
+pub struct Tiles {
     tiles: Vec<HexTile>,
 }
 
-impl Store {
+impl Tiles {
+
     fn new() -> Self {
         let maxq: i32 = ((BOARD_SIZE as f32 / 2.).ceil()) as i32;
         let minq: i32 = maxq - BOARD_SIZE as i32;
@@ -128,18 +128,51 @@ impl Store {
                 }
             }
         }
-
-        Store {
-            game_over: false,
+        Tiles {
             tiles: tiles,
         }
     }
-
+ 
     fn paint(&self, context: &CanvasRenderingContext2d) {
         info!("Paint");
         for tile in self.tiles.iter() {
             tile.paint(context);
         }
+    }
+
+    fn play(&mut self, q: i32, r: i32) -> Result<(), ()> {
+
+        for tile in self.tiles.iter_mut() {
+            if tile.r == r && tile.q == q {
+                tile.selected = !tile.selected;
+            } else {
+                tile.selected = false;
+            }
+        }
+        Ok(())
+    }
+
+
+}
+
+pub struct Store {
+    game_over: bool,
+    tiles: Tiles,
+}
+
+impl Store {
+    fn new() -> Self {
+        let tiles = Tiles::new();
+        Store {
+            game_over: false,
+            tiles,
+        }
+
+    }
+
+    fn paint(&self, context: &CanvasRenderingContext2d) {
+        info!("Paint");
+        self.tiles.paint(context);
     }
 
     fn play(&mut self, x: f64, y: f64) -> Result<(), ()> {
@@ -154,16 +187,7 @@ impl Store {
         let r = (r / tile_x()).round() as i32;
         let q = (q / tile_x()).round() as i32;
         info!("Translated to {}, {}", q, r);
-
-        for tile in self.tiles.iter_mut() {
-            if tile.r == r && tile.q == q {
-                tile.selected = !tile.selected;
-            } else {
-                tile.selected = false;
-            }
-        }
-
-        Ok(())
+        self.tiles.play(q, r)
     }
 }
 
@@ -172,7 +196,7 @@ struct Canvas {
 }
 
 impl Canvas {
-    fn new(selector: &str, store: &Store) -> Canvas {
+    fn new(selector: &str) -> Canvas {
         let canvas: CanvasElement = document()
             .query_selector(selector)
             .unwrap()
@@ -239,7 +263,7 @@ fn main() {
     info!("Welcome aboard");
 
     let store = Store::new();
-    let canvas = Canvas::new("#game", &store);
+    let canvas = Canvas::new("#game");
     let mut ac = AnimatedCanvas::new(store, canvas);
     ac.attach_event();
     ac.paint();
